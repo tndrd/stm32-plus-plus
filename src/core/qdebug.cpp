@@ -1,21 +1,28 @@
 #include "qdebug.h"
 #include <stdio.h>
 
-Debug *Debug::mSelf = 0L;
-
-Debug &qDebug()
+Debug& Debug::instance() 
 {
-    return *Debug::instance();
+  static auto self = std::make_unique<Debug>();
+  return *self;
 }
 
-void _qDebug_outfn(const char *s)
+Debug& qDebug() { return Debug::instance(); }
+
+void qDebug_default_outfn(const char *s)
 {
     printf(s);
 }
 
-Debug::OutFn_t Debug::mOutFn = _qDebug_outfn;
+Debug::OutFnT Debug::mOutFn = qDebug_default_outfn;
 
-void Debug::setOutputFunc(OutFn_t f)
+void Debug::setOutputFunc(OutFnT f)
 {
     mOutFn = f;
+}
+
+template<> Debug& Debug::operator<<(const char* str)
+{
+  mOutFn(str);
+  return *this;
 }

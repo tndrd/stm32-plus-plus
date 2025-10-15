@@ -3,43 +3,52 @@
 
 #include <vector>
 #include <string>
-#include <sstream>
+#include <memory>
+
+/* Uncomment this to enable proper polymorhpic output via qDebug() */
+/* Otherwise anything except strings will be printed as "???"      */
+/* Enabling this option increases executable size by >200Kb        */
+// #define STM32PP_QDEBUG_EXTENDED
 
 class Debug
-{    
+{
 public:
-    typedef void (*OutFn_t)(const char *);
-  
-    static Debug *instance() 
-    {
-        if (!mSelf)
-            mSelf = new Debug;
-//        mSelf->seq++;
-//        mSelf->strings.push_back(std::string());
-        return mSelf;
-    }
-    
-    template <class T>
-    Debug &operator <<(T v)
-    {
-        std::stringstream ss;
-        ss << v;
-        mOutFn(ss.str().c_str());
-//        strings[seq] += " " + ss.str();
-        return *this;
-    }
-    
-    static void setOutputFunc(OutFn_t f);
-      
+  using OutFnT = void(*)(const char*);
+
 private:
-    static Debug *mSelf;
-    static OutFn_t mOutFn;
-//    std::vector<std::string> strings;
-//    int seq;
-    
-//    Debug() : seq(-1) {}     
+  static OutFnT mOutFn;
+
+public:
+  static Debug& instance();
+  static void setOutputFunc(OutFnT f);
+  
+  template <class T>
+  Debug &operator <<(T);
 };
 
-extern Debug &qDebug();
+Debug& qDebug();
+
+template<>
+Debug &Debug::operator<<(const char*);
+
+#if defined(STM32PP_QDEBUG_EXTENDED)
+#include <sstream>
+
+template<typename T>
+Debug& Debug::operator<<(T v)
+{
+    std::stringstream ss;
+    ss << v;
+    mOutFn(ss.str().c_str());
+    return *this;
+}
+#else
+template<typename T>
+Debug& Debug::operator<<(T v)
+{
+    mOutFn("???");
+    return *this;
+}
+#endif
 
 #endif

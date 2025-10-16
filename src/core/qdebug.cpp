@@ -1,5 +1,6 @@
 #include "qdebug.h"
 #include <stdio.h>
+#include <memory>
 
 Debug& Debug::instance() 
 {

@@ -1,10 +1,6 @@
 #ifndef _QDEBUG_H
 #define _QDEBUG_H
 
-#include <vector>
-#include <string>
-#include <memory>
-
 /* Uncomment this to enable proper polymorhpic output via qDebug() */
 /* Otherwise anything except strings will be printed as "???"      */
 /* Enabling this option increases executable size by >200Kb        */

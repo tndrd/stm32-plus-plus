@@ -7,7 +7,7 @@
 class Rcc
 {
 public:
-    static Rcc *instance();
+    static Rcc& instance();
 
 #if defined(STM32F4) || defined(STM32G4) || defined(STM32F3) || defined(STM32F0) || defined(STM32F7)
     enum ClockSource
@@ -42,7 +42,23 @@ public:
 #endif
 
     bool configPll(uint32_t hseValue, uint32_t sysClk);
+    
+    /// @brief Configure clock tree to produce desired SYSCLK frequency
+    /// @param sysClk deisred frequency
+    /// @return status
+    /// @note - This function configures PLL to generate desired frequency, and sets it as a SYSCLK source
+    ///
+    ///       - PLL source clock would be HSE if ```mHseValue``` 
+    ///       was set previously (i.e. via ```measureHseFreq```).
+    ///       Otherwise, it would be HSI
+    ///
+    ///       - AHB prescaler is disabled (HCLK = SYSCLK / 1)
+    ///
+    ///       - APB prescalers are set to match maximum APB frequencies, assuming SYSCLK is set to its maximal frequency
+    ///       
+    ///       - Additionaly, configures FLASH_ACR (caches, prefetch)
     bool configPll(uint32_t sysClk);
+    
     void configPll(ClockSource pll, int freqP, int freqQ, int freqR);
     uint32_t hseValue() const {return mHseValue;}
     uint32_t sysClk() const {return mSysClk;}
@@ -89,7 +105,6 @@ public:
 
 private:
     Rcc();
-    static Rcc *m_self;
 
     bool measureHseFreq();
     

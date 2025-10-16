@@ -1,22 +1,21 @@
 #include "rcc.h"
 #include "core/core.h"
 
+#include <memory>
+
 #if defined(STM32F7)
     #define DCKCFGR DCKCFGR1
 #endif
 
-Rcc *Rcc::m_self = nullptr;
-
-Rcc *Rcc::instance()
+Rcc& Rcc::instance()
 {
-    if (!m_self)
-        m_self = new Rcc();
-    return m_self;
+    static auto self = std::make_unique<Rcc>();  
+    return *self;
 }
 
 Rcc &rcc()
 {
-    return *Rcc::instance();
+    return Rcc::instance();
 }
 
 Rcc::Rcc() :

@@ -4,8 +4,6 @@
 #include <memory>
 #include <assert.h>
 
-#define STM32F4
-
 #if defined(STM32F7)
     #define DCKCFGR DCKCFGR1
 #endif

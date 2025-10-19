@@ -2,6 +2,9 @@
 #include "core/core.h"
 
 #include <memory>
+#include <assert.h>
+
+#define STM32F4
 
 #if defined(STM32F7)
     #define DCKCFGR DCKCFGR1
@@ -296,10 +299,65 @@ bool Rcc::configPll(uint32_t sysClk)
 //        while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL);
 }
 
+/// @brief Measure number of ```timx``` ticks during ```ncycles``` cycles of HSE_RTC clock
+/// @param timx timer to use
+/// @param ncycles number of cycles to measure
+/// @return number of measured ```timx``` ticks
+/// @note ```timx``` clock should be enabled (via RCC->APBxENR)
+static uint32_t measureHseRtcCycles(TIM_TypeDef* timx, int ncycles)
+{
+    int ccr_start, ccr_end;
+
+    asm
+    (
+        /* Initialization */
+        "ADD  r1, %[tim], #16\n"        // r1 = TIMX->SR
+        "ADD  r2, %[tim], #52\n"        // r2 = TIMX->CCR1
+        "MOV  r3, %[cnt]\n"             // counter = ncycles
+        "MOV  r0, #2\n"
+        "STRH r0, [%[tim], #80]\n"      // TIMX->OR = 0x0002;    // HSE_RTC connect to TIMX_CH1 input
+        "MOVW r0, #65535\n"
+        "STR  r0, [%[tim], #44]\n"      // TIMX->ARR = 0xFFFF;   // Max out reload value
+        "MOV  r0, #1\n"
+        "STRH r0, [%[tim], #24]\n"      // TIMX->CCMR1 = 0x0001; // CC1 channel configured as input
+        "STRH r0, [%[tim], #32]\n"      // TIMX->CCER = 0x0001;  // enable capture of rising edge
+        "STRH r0, [%[tim]]\n"           // TIMX->CR1 = 0x0001;   // enable TIMX
+        
+        /* Wait for first capture, */
+        /* measure ccr_start       */
+        "MOV  r0, #0\n"
+        "STRH r0, [r1]\n"               // TIMX->SR = 0;
+        "wait0:\n"
+        "LDR r0, [r1]\n"
+        "LSLS r0, r0, #30\n"            // test CC1IF (sets on capture, resets on read)
+        "BPL wait0\n"                   // wait for capture
+        "LDR %[f0], [r2]\n"             // ccr_start = TIMX->CCR1;
+        
+        /* Wait for ncycles captures,     */
+        /* update ccr_end on each capture */
+        "wait1: LDR r0, [r1]\n"
+        "LSLS r0, r0, #30\n"            // test CC1IF
+        "BPL wait1\n"                   // wait for capture
+        "LDR %[f1], [r2]\n"             // ccr_end = TIMX->CCR1;
+        "SUBS r3, r3, #1\n"             // decrement counter
+        "BNE wait1\n"                   // continue loop
+        
+        /* Finalization */
+        "MOVS r0, #0\n"
+        "STRH r0, [%[tim]]\n"           // TIMX->CR1 = 0x0000; // disable TIMX
+        "STRH r0, [r1]\n"               // TIMX->SR = 0;
+        
+        : [f0]"=r"(ccr_start), [f1]"=r"(ccr_end)
+        : [tim]"r"(timx), [cnt]"r"(ncycles)
+        : "cc", "r0", "r1", "r2", "r3"
+    );
+
+    assert(ccr_end > ccr_start);
+    return ccr_end - ccr_start;
+}
+
 bool Rcc::measureHseFreq()
 {
-    mHseValue = 0;
-
     // Enable HSE
     RCC->CR |= RCC_CR_HSEON;
 
@@ -309,100 +367,37 @@ bool Rcc::measureHseFreq()
 
     if (!timeout) // HSE doesn't work :c
     {
-        // Disable HSE
-        RCC->CR &= ~RCC_CR_HSEON;
+        mHseValue = 0;
+        RCC->CR &= ~RCC_CR_HSEON; // Disable HSE
         return false;
     }
 
-    // measure HSE frequency
-    RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; // enable peripheral clock for TIM11
-    unsigned long rccCfgr = RCC->CFGR;
-    unsigned long temp = rccCfgr;
-    temp &= ~(0x1F << 16);
-    temp |= (30 << 16); // RTC = HSE / 30
-    RCC->CFGR = temp;
+    uint32_t oldCfgr = RCC->CFGR; // Store RCC->CFGR state
+    uint32_t newCfgr = oldCfgr;   //
+    newCfgr &= ~(0x1F << 16);     // Clear RTCPRE bits
+    newCfgr |= (30 << 16);        // Prescale HSE_RTC = HSE / 30
+    RCC->CFGR = newCfgr;          // 
 
-    int loopCount = 10;
-    int fr0, fr1;
-    TIM_TypeDef *tim11 = TIM11;
+    // Enable peripheral clock for TIM11
+    RCC->APB2ENR |= RCC_APB2ENR_TIM11EN;
 
-    /* Seems like IAR and GCC have different syntax for asm */
-    /* with the difference being register name case */
-
-    #if defined(__ICCARM__)
-    asm("ADD  R1, %[tim], #16\n"        // R1 = TIM1->SR
-        "ADD  R2, %[tim], #52\n"        // R2 = TIM1->CCR1
-        "MOV  R3, %[cnt]\n"             // counter = 10
-        "MOV  R0, #2\n"
-        "STRH R0, [%[tim], #80]\n"      // TIM11->OR = 0x0002; // HSE connect to TIM11_CH1 input
-        "MOVW R0, #65535\n"
-        "STR  R0, [%[tim], #44]\n"      // TIM11->ARR = 0xFFFF;
-        "MOV  R0, #1\n"
-        "STRH R0, [%[tim], #24]\n"      // TIM11->CCMR1 = 0x0001; // CC1 channel configured as input
-        "STRH R0, [%[tim], #32]\n"      // TIM11->CCER = 0x0001; // enable capture of rising edge
-        "STRH R0, [%[tim]]\n"           // TIM11->CR1 = 0x0001; // enable TIM11
-        "MOV  R0, #0\n"
-        "STRH R0, [R1]\n"               // TIM11->SR = 0;
-        "wait0:\n"
-        "LDR R0, [R1]\n"
-        "LSLS R0, R0, #30\n"            // test bit 2
-        "BPL wait0\n"                   // wait for bit 2
-        "LDR %[f0], [R2]\n"             // fr0 = TIM11->CCR1;
-        "wait1: LDR R0, [R1]\n"
-        "LSLS R0, R0, #30\n"            // test bit 2
-        "BPL wait1\n"                   // wait for bit 2
-        "LDR %[f1], [R2]\n"             // fr1 = TIM11->CCR1;
-        "SUBS R3, R3, #1\n"             // decrement counter
-        "BNE wait1\n"                   // continue loop
-        "MOVS R0, #0\n"
-        "STRH R0, [%[tim]]\n"           // TIM11->CR1 = 0x0000; // disable TIM11
-        "STRH R0, [R1]\n"               // TIM11->SR = 0;
-        : [f0]"=r"(fr0), [f1]"=r"(fr1)
-        : [tim]"r"(tim11), [cnt]"r"(loopCount)
-        : "cc", "R0", "R1", "R2", "R3");
+    // Measure TIM11 ticks during 10 HSE_RTC cycles
+    int ncycles = 10;
+    int nticks  = measureHseRtcCycles(TIM11, ncycles);
     
-    #elif defined(__GNUC__)
-    asm("ADD  r1, %[tim], #16\n"        // r1 = TIM1->SR
-        "ADD  r2, %[tim], #52\n"        // r2 = TIM1->CCR1
-        "MOV  r3, %[cnt]\n"             // counter = 10
-        "MOV  r0, #2\n"
-        "STRH r0, [%[tim], #80]\n"      // TIM11->OR = 0x0002; // HSE connect to TIM11_CH1 input
-        "MOVW r0, #65535\n"
-        "STR  r0, [%[tim], #44]\n"      // TIM11->ARR = 0xFFFF;
-        "MOV  r0, #1\n"
-        "STRH r0, [%[tim], #24]\n"      // TIM11->CCMR1 = 0x0001; // CC1 channel configured as input
-        "STRH r0, [%[tim], #32]\n"      // TIM11->CCER = 0x0001; // enable capture of rising edge
-        "STRH r0, [%[tim]]\n"           // TIM11->CR1 = 0x0001; // enable TIM11
-        "MOV  r0, #0\n"
-        "STRH r0, [r1]\n"               // TIM11->SR = 0;
-        "wait0:\n"
-        "LDR r0, [r1]\n"
-        "LSLS r0, r0, #30\n"            // test bit 2
-        "BPL wait0\n"                   // wait for bit 2
-        "LDR %[f0], [r2]\n"             // fr0 = TIM11->CCR1;
-        "wait1: LDR r0, [r1]\n"
-        "LSLS r0, r0, #30\n"            // test bit 2
-        "BPL wait1\n"                   // wait for bit 2
-        "LDR %[f1], [r2]\n"             // fr1 = TIM11->CCR1;
-        "SUBS r3, r3, #1\n"             // decrement counter
-        "BNE wait1\n"                   // continue loop
-        "MOVS r0, #0\n"
-        "STRH r0, [%[tim]]\n"           // TIM11->CR1 = 0x0000; // disable TIM11
-        "STRH r0, [r1]\n"               // TIM11->SR = 0;
-        : [f0]"=r"(fr0), [f1]"=r"(fr1)
-        : [tim]"r"(tim11), [cnt]"r"(loopCount)
-        : "cc", "r0", "r1", "r2", "r3");
-
-    #endif
-
-    RCC->CFGR = rccCfgr;
-    RCC->APB2ENR &= ~RCC_APB2ENR_TIM11EN; // disable peripheral clock to TIM11
-    // end of measure
+    // Restore previous state
+    RCC->CFGR = oldCfgr;
+    RCC->APB2ENR &= ~RCC_APB2ENR_TIM11EN;
 
     // calculate hseValue
-    int hseValue;
-    fr1 -= fr0;
-    hseValue = ((16 * 30) * loopCount + fr1 / 2) / fr1;
+    uint32_t hseValue;
+
+    // This function is only called when Rcc is constructed.
+    // We assume that at this moment all the RCC registers
+    // contain their reset values.
+    // Therefore, TIM11 frequency is HSI/1 = 16MHz
+
+    hseValue = ((16 * 30) * ncycles + nticks / 2) / nticks;
     hseValue *= 1000000;
 
     if (hseValue > 26000000)

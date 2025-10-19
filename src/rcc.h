@@ -41,15 +41,22 @@ public:
     constexpr uint32_t hsiValue() const {return 8000000;}
 #endif
 
+    /// @brief Configure clock tree to produce desired SYSCLK frquency,
+    ///        using HSE with known frequency as a clock source
+    /// @param hseValue HSE frequency
+    /// @param sysClk desired SYSCLK frquency
+    /// @return status
+    /// @note This function sets ```mHseValue``` and calls ```configPll(uint32_t sysClk)```.
+    ///       See the original function docs for additional notes
     bool configPll(uint32_t hseValue, uint32_t sysClk);
     
     /// @brief Configure clock tree to produce desired SYSCLK frequency
-    /// @param sysClk deisred frequency
+    /// @param sysClk desired SYSCLK frequency
     /// @return status
     /// @note - This function configures PLL to generate desired frequency, and sets it as a SYSCLK source
     ///
     ///       - PLL source clock would be HSE if ```mHseValue``` 
-    ///       was set previously (i.e. via ```measureHseFreq```).
+    ///       was set previously (i.e. via ```measureHseFreq``` in ctor).
     ///       Otherwise, it would be HSI
     ///
     ///       - AHB prescaler is disabled (HCLK = SYSCLK / 1)
@@ -59,7 +66,16 @@ public:
     ///       - Additionaly, configures FLASH_ACR (caches, prefetch)
     bool configPll(uint32_t sysClk);
     
+    /// @brief Configures pll to generate desired frequencies
+    /// @param pll pll instance
+    /// @param freqP P-output frequency
+    /// @param freqQ Q-output frequency
+    /// @param freqR R-output frequency
+    /// @note - Assumes source frequency is 1MHz
+    ///
+    ///       - Intended for use with auxilary PLLs (PLLI2S, etc.) 
     void configPll(ClockSource pll, int freqP, int freqQ, int freqR);
+    
     uint32_t hseValue() const {return mHseValue;}
     uint32_t sysClk() const {return mSysClk;}
     uint32_t hClk() const {return mAHBClk;}
@@ -106,6 +122,10 @@ public:
 private:
     Rcc();
 
+    /// @brief Measures HSE frequency, stores in ```mHseValue```
+    /// @return status
+    /// @note Relies on reset values, can only be called from Rcc::Rcc() at startup
+    /// @todo clarify ```nticks / 2``` term and ```hseValue > 26MHz``` case
     bool measureHseFreq();
     
     // returns base address of periph bus

@@ -594,7 +594,6 @@ bool Rcc::measureHseFreq()
 }
 
 #elif defined(STM32G4)
-#include "stm32g431xx.h"
 
 bool Rcc::configPll(uint32_t sysClk)
 {

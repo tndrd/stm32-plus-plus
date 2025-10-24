@@ -297,12 +297,10 @@ bool Rcc::configPll(uint32_t sysClk)
 //        while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL);
 }
 
-/// @brief Measure number of ```timx``` ticks during ```ncycles``` cycles of HSE_RTC clock
-/// @param timx timer to use
+/// @brief Measure number of TIM11 ticks during ```ncycles``` cycles of HSE_RTC clock
 /// @param ncycles number of cycles to measure
-/// @return number of measured ```timx``` ticks
-/// @note ```timx``` clock should be enabled (via RCC->APBxENR)
-static uint32_t measureHseRtcCycles(TIM_TypeDef* timx, int ncycles)
+/// @return number of measured TIM11 ticks
+static uint32_t measureHseRtcCycles(int ncycles)
 {
     int ccr_start, ccr_end;
 
@@ -346,7 +344,7 @@ static uint32_t measureHseRtcCycles(TIM_TypeDef* timx, int ncycles)
         "STRH r0, [r1]\n"               // TIMX->SR = 0;
         
         : [f0]"=r"(ccr_start), [f1]"=r"(ccr_end)
-        : [tim]"r"(timx), [cnt]"r"(ncycles)
+        : [tim]"r"(TIM11), [cnt]"r"(ncycles)
         : "cc", "r0", "r1", "r2", "r3"
     );
 
@@ -381,7 +379,7 @@ bool Rcc::measureHseFreq()
 
     // Measure TIM11 ticks during 10 HSE_RTC cycles
     int ncycles = 10;
-    int nticks  = measureHseRtcCycles(TIM11, ncycles);
+    int nticks  = measureHseRtcCycles(ncycles);
     
     // Restore previous state
     RCC->CFGR = oldCfgr;
@@ -393,7 +391,7 @@ bool Rcc::measureHseFreq()
     // This function is only called when Rcc is constructed.
     // We assume that at this moment all the RCC registers
     // contain their reset values.
-    // Therefore, TIM11 frequency is HSI/1 = 16MHz
+    // Therefore, TIM11 clock is HSI/1 = 16MHz
 
     hseValue = ((16 * 30) * ncycles + nticks / 2) / nticks;
     hseValue *= 1000000;
@@ -596,11 +594,15 @@ bool Rcc::measureHseFreq()
 }
 
 #elif defined(STM32G4)
+#include "stm32g431xx.h"
 
 bool Rcc::configPll(uint32_t sysClk)
 {
-    //! @todo Dopilit RCC config for STM32G4
+    if (sysClk > 170*1000*1000)
+      return false;
 
+    // Set HSI or HSE (if available) as SYSCLK
+    // Disable PLL (if needed)
     uint32_t inputClk = mHseValue;
     if (!inputClk)
         inputClk = hsiValue();
@@ -609,70 +611,152 @@ bool Rcc::configPll(uint32_t sysClk)
     {
         if (!setSystemClockSource(HSI))
             return false;
-        FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | FLASH_ACR_LATENCY_0WS;
         setEnabled(PLL, false);
     }
 
-    uint32_t pllR = 2;
-    uint32_t pllvco = sysClk * pllR;
+    // Evaluate PLL params for
+    //   PLLRCLK ~ sysClk
+    //   PLLQCLK ~ 48Mhz
+    mPllR = 2;
+    mPllP = 2;
+    uint32_t pllvco = sysClk * mPllR;
 
     mPllM = inputClk / 4000000;
-    if (!mPllM)
-        mPllM = 1;
+    if (mPllM == 0)
+      mPllM = 1;
     if (mPllM > 16)
-        THROW(Exception::BadSoBad);
+      THROW(Exception::BadSoBad);
+    
     mPllN = pllvco / (inputClk / mPllM);
     if (mPllN < 8 || mPllN > 127)
         THROW(Exception::BadSoBad);
-    mPllP = 2;
+    
     mPllQ = pllvco / 48000000;
+    sysClk = inputClk / mPllM * mPllN / mPllR;
 
-    //! @todo USB clock poorly matches 48 MHz
-
-    mSysClk = inputClk;
-    mAHBClk = mSysClk;
-    mAPB1Clk = mSysClk;
-    mAPB2Clk = mSysClk;
-
+    // PWR_CR5_R1MODE recommended values [RM0440, PWR_CR5]
     if (sysClk >= 150000000)
         PWR->CR5 &= ~PWR_CR5_R1MODE;
     else
         PWR->CR5 |= PWR_CR5_R1MODE;
 
-    RCC->PLLCFGR = ((mPllM - 1) << 4) | ((mPllN & 0x7F) << 8) /*| (((mPllQ>>1)-1) << 21) */| (((pllR>>1)-1) << 25) | (RCC_PLLCFGR_PLLREN); // | (RCC_PLLCFGR_PLLQEN);
+    // Configure PLL
+    RCC->PLLCFGR = (((mPllR >> 1) - 1) << 25) | (RCC_PLLCFGR_PLLREN)  | 
+                   (((mPllQ >> 1) - 1) << 21) | (RCC_PLLCFGR_PLLQEN)  |
+                   ((mPllM - 1) << 4)    |
+                   ((mPllN & 0x7F) << 8) ;
 
-    if (mHseValue) // if HSE is present make it the clock source of PLL
-        RCC->PLLCFGR |= RCC_PLLCFGR_PLLSRC_HSE;
+    // If HSE is present make it the clock source of PLL
+    // Otherwise, use HSI
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLSRC_Msk;
+    RCC->PLLCFGR |= (mHseValue) ? RCC_PLLCFGR_PLLSRC_HSE :
+                                  RCC_PLLCFGR_PLLSRC_HSI ;
+    
+    if (!setEnabled(PLL, true) || !setSystemClockSource(PLL))
+      THROW(Exception::BadSoBad);
 
-    if (setEnabled(PLL, true))
-    {
-        uint32_t acr = FLASH->ACR;
-        acr |= FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN;
-        acr = (acr & ~FLASH_ACR_LATENCY_Msk) | FLASH_ACR_LATENCY_4WS;
-        FLASH->ACR = acr;
+    // Finalize
+    mSysClk = sysClk;
 
-        if (setSystemClockSource(PLL))
-        {
-            mSysClk = inputClk / mPllM * mPllN / pllR;
-            mAHBClk = mSysClk;
-            mAPB1Clk = mSysClk;
-            mAPB2Clk = mSysClk;
-        }
-        else
-            THROW(Exception::BadSoBad);
-    }
-//    else if (mHseValue && setEnabled(HSE, true)) {}
-    else
-        THROW(Exception::BadSoBad);
+    // Bus clock prescaling is not neccesary,
+    // maximum AxBCLK frequency is equal to maximum
+    // SYSCLK frequency
+    mAHBClk = mSysClk;
+    mAPB1Clk = mSysClk;
+    mAPB2Clk = mSysClk;
+
+    // Configure prefetch & caches
+    uint32_t acr = FLASH->ACR;
+    acr |= FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN;
+    acr = (acr & ~FLASH_ACR_LATENCY_Msk) | FLASH_ACR_LATENCY_4WS;
+    FLASH->ACR = acr;
 
     return true;
 }
 
 bool Rcc::measureHseFreq()
 {
-    /// @todo implement HSE measurement on TIM16 or TIM17
-    return false;
+    // Enable HSE
+    RCC->CR |= RCC_CR_HSEON;
+
+    // Wait till HSE is ready
+    uint32_t timeout = 20000;
+    while (!(RCC->CR & RCC_CR_HSERDY) && timeout--);
+    
+    if (!timeout) // HSE doesn't work :c
+    {
+        mHseValue = 0;
+        RCC->CR &= ~RCC_CR_HSEON; // Disable HSE
+        return false;
+    }
+
+    /* Configure TIM17 to capture HSE/32 */
+    RCC->APB2ENR |= RCC_APB2ENR_TIM17EN;       // Enable peripheral clock
+    TIM17->OR    |= TIM_OR_HSE32EN;            // Enable HSE/32 divider
+    TIM17->ARR   |= 0xFFFF;                    // Max out reload value
+    TIM17->TISEL &= ~TIM_TISEL_TI1SEL_Msk;     // Set tim_ti1_in3 (HSE/32) as TIM17 input
+    TIM17->TISEL |= 3 << TIM_TISEL_TI1SEL_Pos; //
+    TIM17->CCMR1 &= ~TIM_CCMR1_CC1S_Msk;       // Configure CC1 channel as input
+    TIM17->CCMR1 |= 1 << TIM_CCMR1_CC1S_Pos;   //
+    TIM17->CCER  &= ~TIM_CCER_CC1NP;           // Enable non-inverted, rising-edge detection
+    TIM17->CCER  &= ~TIM_CCER_CC1P;            //
+    TIM17->CCMR1 &= ~TIM_CCMR1_IC1PSC_Msk;     // Disable prescaling
+
+    TIM17->CR1   |= TIM_CR1_CEN;    // Enable counting
+    TIM17->CCMR1 |= TIM_CCER_CC1E;  // Enable capturing
+
+    int ncycles = 10;
+    uint32_t ccr_start, ccr_end;
+
+    /* First capture */
+    TIM17->SR &= ~TIM_SR_CC1IF;         // Reset CC1IF
+    while(!(TIM17->SR & TIM_SR_CC1IF)); // Wait for capture
+    ccr_start = TIM17->CCR1;            //
+
+    /* Wait for ncycles captures,     */
+    /* update ccr_end on each capture */
+    for (int i = 0; i < ncycles; ++i)
+    {
+        while(!(TIM17->SR & TIM_SR_CC1IF));
+        
+        uint32_t ccr_end_new = TIM17->CCR1;
+        assert(ccr_end_new > ccr_end);
+        ccr_end = ccr_end_new;
+    }
+
+    /* Disable TIM17 */
+    TIM17->CCMR1 &= ~TIM_CCER_CC1E;       // Disable capturing
+    TIM17->CR1   &= ~TIM_CR1_CEN;         // Disable coutning
+    TIM17->OR    &= ~TIM_OR_HSE32EN;      // Disable HSE/32 divider
+    RCC->APB2ENR &= ~RCC_APB2ENR_TIM17EN; // Disable peripheral clock
+    
+    /* Calculate hseValue */
+    uint32_t hseValue;
+
+    // This function is only called when Rcc is constructed.
+    // We assume that at this moment all the RCC registers
+    // contain their reset values.
+    // Therefore, TIM17 clock is HSI/1 = 16MHz
+
+    hseValue = (16 * 32) / (ccr_end - ccr_start);
+    hseValue *= 1000*1000;
+
+    if (hseValue < 4*1000*1000 || hseValue > 48*1000*1000)
+        return false;
+    
+    mHseValue = hseValue;
+    return true;
 }
+
+void Rcc::configPll(ClockSource pll, int freqP, int freqQ, int freqR) {}
+
+#if defined(LTDC)
+int Rcc::configLtdcClock(int frequency) {}
+#endif
+
+void Rcc::configClockOutput(Gpio::Config mco, ClockSource clk, int prescaler) {}
+bool Rcc::configRtc(ClockSource clock) {}
+
 
 #elif defined(STM32F3)
 

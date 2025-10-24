@@ -140,6 +140,9 @@ private:
     uint32_t mPllP;
     uint32_t mPllQ;
 #endif
+#if defined(STM32G4)
+    uint32_t mPllR;
+#endif
     uint32_t mSysClk;
     uint32_t mAHBClk;
     uint32_t mAPB1Clk;

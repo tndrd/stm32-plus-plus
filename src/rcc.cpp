@@ -595,10 +595,13 @@ bool Rcc::measureHseFreq()
 
 #elif defined(STM32G4)
 
+// Sugah
+static constexpr uint32_t MHz = 1000 * 1000;
+
 bool Rcc::configPll(uint32_t sysClk)
 {
-    if (sysClk > 170*1000*1000)
-      return false;
+    if (sysClk > 170 * MHz)
+        return false;
 
     // Set HSI or HSE (if available) as SYSCLK
     // Disable PLL (if needed)
@@ -615,35 +618,36 @@ bool Rcc::configPll(uint32_t sysClk)
 
     // Evaluate PLL params for
     //   PLLRCLK ~ sysClk
-    //   PLLQCLK ~ 48Mhz
+    //   PLLQCLK ~ 48MHz
     mPllR = 2;
     mPllP = 2;
     uint32_t pllvco = sysClk * mPllR;
 
-    mPllM = inputClk / 4000000;
+    mPllM = inputClk / (4 * MHz);
     if (mPllM == 0)
-      mPllM = 1;
+        mPllM = 1;
     if (mPllM > 16)
-      THROW(Exception::BadSoBad);
+        THROW(Exception::BadSoBad);
     
     mPllN = pllvco / (inputClk / mPllM);
     if (mPllN < 8 || mPllN > 127)
         THROW(Exception::BadSoBad);
     
-    mPllQ = pllvco / 48000000;
+    mPllQ = pllvco / (48 * MHz);
     sysClk = inputClk / mPllM * mPllN / mPllR;
 
     // PWR_CR5_R1MODE recommended values [RM0440, PWR_CR5]
-    if (sysClk >= 150000000)
+    if (sysClk >= 150 * MHz)
         PWR->CR5 &= ~PWR_CR5_R1MODE;
     else
         PWR->CR5 |= PWR_CR5_R1MODE;
 
     // Configure PLL
-    RCC->PLLCFGR = (((mPllR >> 1) - 1) << 25) | (RCC_PLLCFGR_PLLREN)  | 
-                   (((mPllQ >> 1) - 1) << 21) | (RCC_PLLCFGR_PLLQEN)  |
-                   ((mPllM - 1) << 4)    |
-                   ((mPllN & 0x7F) << 8) ;
+    RCC->PLLCFGR = 0;
+    RCC->PLLCFGR |= (((mPllR >> 1) - 1) << 25) | RCC_PLLCFGR_PLLREN;
+    RCC->PLLCFGR |= (((mPllQ >> 1) - 1) << 21) | RCC_PLLCFGR_PLLQEN;
+    RCC->PLLCFGR |= (mPllN & 0x7F) << 8;
+    RCC->PLLCFGR |= (mPllM - 1) << 4;
 
     // If HSE is present make it the clock source of PLL
     // Otherwise, use HSI
@@ -652,13 +656,13 @@ bool Rcc::configPll(uint32_t sysClk)
                                   RCC_PLLCFGR_PLLSRC_HSI ;
     
     if (!setEnabled(PLL, true) || !setSystemClockSource(PLL))
-      THROW(Exception::BadSoBad);
+        THROW(Exception::BadSoBad);
 
     // Finalize
     mSysClk = sysClk;
 
     // Bus clock prescaling is not neccesary,
-    // maximum AxBCLK frequency is equal to maximum
+    // maximum APBxCLK frequency is equal to maximum
     // SYSCLK frequency
     mAHBClk = mSysClk;
     mAPB1Clk = mSysClk;
@@ -738,23 +742,78 @@ bool Rcc::measureHseFreq()
     // Therefore, TIM17 clock is HSI/1 = 16MHz
 
     hseValue = (16 * 32) / (ccr_end - ccr_start);
-    hseValue *= 1000*1000;
 
-    if (hseValue < 4*1000*1000 || hseValue > 48*1000*1000)
+    if (hseValue < 4 || hseValue > 48)
         return false;
     
-    mHseValue = hseValue;
+    mHseValue = hseValue * MHz;
     return true;
 }
 
-void Rcc::configPll(ClockSource pll, int freqP, int freqQ, int freqR) {}
+void Rcc::configClockOutput(Gpio::Config mco, ClockSource clk, int prescaler)
+{
+    uint32_t mcopre, mcosel;
 
-#if defined(LTDC)
-int Rcc::configLtdcClock(int frequency) {}
-#endif
+    switch (prescaler)
+    {
+        case 1:  mcopre = RCC_CFGR_MCOPRE_DIV1;  break;
+        case 2:  mcopre = RCC_CFGR_MCOPRE_DIV2;  break;
+        case 4:  mcopre = RCC_CFGR_MCOPRE_DIV4;  break;
+        case 8:  mcopre = RCC_CFGR_MCOPRE_DIV8;  break;
+        case 16: mcopre = RCC_CFGR_MCOPRE_DIV16; break;
+        
+        default: return;
+    }
 
-void Rcc::configClockOutput(Gpio::Config mco, ClockSource clk, int prescaler) {}
-bool Rcc::configRtc(ClockSource clock) {}
+    switch (clk)
+    {
+        case SYSCLK: mcosel = 0b0001; break;
+        case HSI:    mcosel = 0b0011; break;
+        case HSE:    mcosel = 0b0100; break;
+        case PLL:    mcosel = 0b0101; break;
+        case LSI:    mcosel = 0b0110; break;
+        case LSE:    mcosel = 0b0111; break;
+
+        default: return;
+    } 
+
+    if(mco != Gpio::MCO_PA8 && mco != Gpio::MCO_PG10) return;
+    
+    uint32_t cfgr = RCC->CFGR;
+    
+    cfgr &= ~RCC_CFGR_MCOPRE_Msk;
+    cfgr |= mcopre;
+
+    cfgr &= ~RCC_CFGR_MCOSEL_Msk;
+    cfgr |= (mcosel << RCC_CFGR_MCOSEL_Pos);
+    
+    RCC->CFGR = cfgr;
+
+    Gpio::config(mco);
+}
+
+bool Rcc::configRtc(ClockSource clock)
+{
+    uint8_t rtcsel;
+    switch (clock)
+    {
+        case LSE: rtcsel = 0b01; break;
+        case LSI: rtcsel = 0b10; break;
+        case HSE: rtcsel = 0b11; break;
+
+        default: return false;
+    }
+
+    bool r = isReady(clock) ? true : setEnabled(clock, true);
+    if (!r) return false;
+
+    RCC->BDCR &= ~RCC_BDCR_RTCSEL_Msk;
+    RCC->BDCR |= rtcsel << RCC_BDCR_RTCSEL_Pos; 
+    
+    RCC->BDCR |= RCC_BDCR_RTCEN;
+
+    return true;
+}
 
 
 #elif defined(STM32F3)

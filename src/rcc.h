@@ -66,6 +66,7 @@ public:
     ///       - Additionaly, configures FLASH_ACR (caches, prefetch)
     bool configPll(uint32_t sysClk);
     
+#if defined(STM32F4)
     /// @brief Configures pll to generate desired frequencies
     /// @param pll pll instance
     /// @param freqP P-output frequency
@@ -75,7 +76,8 @@ public:
     ///
     ///       - Intended for use with auxilary PLLs (PLLI2S, etc.) 
     void configPll(ClockSource pll, int freqP, int freqQ, int freqR);
-    
+#endif    
+
     uint32_t hseValue() const {return mHseValue;}
     uint32_t sysClk() const {return mSysClk;}
     uint32_t hClk() const {return mAHBClk;}

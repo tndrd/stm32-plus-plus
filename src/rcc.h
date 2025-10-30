@@ -12,9 +12,9 @@ public:
 #if defined(STM32F4) || defined(STM32G4) || defined(STM32F3) || defined(STM32F0) || defined(STM32F7)
     enum ClockSource
     {
-        HSI = 0x0,
-        HSE = 0x1,
-        PLL = 0x2,
+        HSI = RCC_CFGR_SW_HSI,
+        HSE = RCC_CFGR_SW_HSE,
+        PLL = RCC_CFGR_SW_PLL,
         SYSCLK = 0x80,
         LSI,
         LSE,

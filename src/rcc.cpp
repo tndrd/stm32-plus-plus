@@ -10,7 +10,7 @@
 
 Rcc& Rcc::instance()
 {
-    static auto self = std::make_unique<Rcc>();  
+    static auto self = std::unique_ptr<Rcc>(new Rcc{});  
     return *self;
 }
 
@@ -643,18 +643,25 @@ bool Rcc::configPll(uint32_t sysClk)
         PWR->CR5 |= PWR_CR5_R1MODE;
 
     // Configure PLL
-    RCC->PLLCFGR = 0;
-    RCC->PLLCFGR |= (((mPllR >> 1) - 1) << 25) | RCC_PLLCFGR_PLLREN;
-    RCC->PLLCFGR |= (((mPllQ >> 1) - 1) << 21) | RCC_PLLCFGR_PLLQEN;
-    RCC->PLLCFGR |= (mPllN & 0x7F) << 8;
-    RCC->PLLCFGR |= (mPllM - 1) << 4;
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLR_Msk;
+    RCC->PLLCFGR |= ((mPllR / 2 - 1) & 0b11) << RCC_PLLCFGR_PLLR_Pos;
+    RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
+
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLN_Msk;
+    RCC->PLLCFGR |= (mPllN & 0x7F) << RCC_PLLCFGR_PLLN_Pos;
+
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLM_Msk;
+    RCC->PLLCFGR |= (mPllM - 1) << RCC_PLLCFGR_PLLM_Pos;
+
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLQEN;
+    RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLPEN;
 
     // If HSE is present make it the clock source of PLL
     // Otherwise, use HSI
     RCC->PLLCFGR &= ~RCC_PLLCFGR_PLLSRC_Msk;
     RCC->PLLCFGR |= (mHseValue) ? RCC_PLLCFGR_PLLSRC_HSE :
                                   RCC_PLLCFGR_PLLSRC_HSI ;
-    
+
     if (!setEnabled(PLL, true) || !setSystemClockSource(PLL))
         THROW(Exception::BadSoBad);
 
@@ -741,7 +748,9 @@ bool Rcc::measureHseFreq()
     // contain their reset values.
     // Therefore, TIM17 clock is HSI/1 = 16MHz
 
-    hseValue = (16 * 32) / (ccr_end - ccr_start);
+    uint32_t nticks = ccr_end - ccr_start;
+
+    hseValue = (16 * 32 + nticks / 2) / nticks;
 
     if (hseValue < 4 || hseValue > 48)
         return false;
@@ -1302,8 +1311,7 @@ void Rcc::setPeriphEnabled(void *periphBase, bool enabled)
     else switch (base)
     {
 #if defined(STM32G4)
-    case FDCAN2_BASE:
-    case FDCAN3_BASE:
+    case FDCAN1_BASE:
         RCC->APB1ENR1 |= RCC_APB1ENR1_FDCANEN;
         break;
 #elif defined(STM32F3)

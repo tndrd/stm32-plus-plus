@@ -18,8 +18,15 @@ FdCan::FdCan(Gpio::Config fdcanRx, Gpio::Config fdcanTx) :
     switch (GpioConfigGetPeriphNumber(fdcanRx))
     {
         case 1: m_dev = FDCAN1; msgRam = (MessageRAM*)(SRAMCAN_BASE); break;
+        
+        #if defined(FDCAN2)
         case 2: m_dev = FDCAN2; msgRam = (MessageRAM*)(SRAMCAN_BASE + sizeof(MessageRAM)); break;
+        #endif
+        
+        #if defined(FDCAN3)
         case 3: m_dev = FDCAN3; msgRam = (MessageRAM*)(SRAMCAN_BASE + 2*sizeof(MessageRAM)); break;
+        #endif
+        
         default: THROW(Exception::InvalidPeriph);
     }
 

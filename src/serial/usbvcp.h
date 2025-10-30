@@ -2,7 +2,7 @@
 #define _USBVCP_H
 
 #include "usb/usb.h"
-#include "usb/usbcdc/usbcdc.h"
+#include "usb/usbCdc/usbcdc.h"
 #include "core/device.h"
 #include "usb/usbifcol.h"
 #include "cpuid.h"

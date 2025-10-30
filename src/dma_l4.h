@@ -34,7 +34,7 @@ FOR_EACH_DMA(DECLARE_DMA_IRQ_HANDLER)
 class Dma
 {
 public:    
-    enum Channel; // forward declaration
+    enum Channel: uint32_t; // forward declaration
   
      Dma(Channel channelName);
     ~Dma();
@@ -116,7 +116,7 @@ private:
 
 #if defined(STM32L4)
 
-enum Dma::Channel
+enum Dma::Channel: uint32_t
 {
     // DMA1
     ADC1_Channel1 = 0x110,
@@ -243,7 +243,7 @@ enum Dma::Channel
 #elif defined(STM32G4)
 
 // this is resource ID used in the DMAMUX peripheral
-enum Dma::Channel
+enum Dma::Channel: uint32_t
 {
     DMAMUX_Req_G0 = 1, 
 	DMAMUX_Req_G1 = 2, 

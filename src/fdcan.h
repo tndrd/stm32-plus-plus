@@ -139,7 +139,10 @@ private:
 
     union TxBufferElement
     {
-        struct
+        // Named the struct, otherwise GCC
+        // would not allow default ctor for
+        // TxBUfferHeader
+        struct _
         {
         TxBufferHeader hdr;
         uint32_t data[16];

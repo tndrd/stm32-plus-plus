@@ -1,5 +1,7 @@
 #include "powermanager.h"
 
+#if !defined(STM32G4)
+
 PowerManager::PowerManager(Adc *adc) :
     mAdc(adc),
     mTemperature(0),
@@ -83,3 +85,5 @@ void PowerManager::onTimer()
             entry.value = entry.Kf * entry.value + (1.0f - entry.Kf) * v;
     }
 }
+
+#endif

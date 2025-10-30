@@ -1,6 +1,8 @@
 #include "can.h"
 #include "rcc.h"
 
+#if !defined(STM32G4)
+
 Can *Can::m_instances[2] = {nullptr, nullptr};
 
 Can::Can(Gpio::Config pinRx, Gpio::Config pinTx, int baudrate) :
@@ -349,5 +351,6 @@ void CAN2_TX_IRQHandler()
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 //---------------------------------------------------------------------------

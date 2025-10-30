@@ -2,7 +2,7 @@
 #include "rcc.h"
 #include <math.h>
 
-#if !defined(STM32F3)
+#if !defined(STM32F3) && !defined(STM32G4)
 
 Adc* Adc::mInstances[3] = {0L, 0L, 0L};
 

@@ -6,6 +6,9 @@
 #include <string>
 #include <map>
 
+// ADC is not implemented for G4
+#if !defined(STM32G4)
+
 using namespace std;
 
 class PowerManager
@@ -45,4 +48,5 @@ public:
     const float &rawVoltage(string name) {return mVoltages[name].rawValue;}
 };
 
+#endif
 #endif

@@ -9,6 +9,8 @@
 #define I2C_REV03
 #endif
 
+#if !defined(STM32G4)
+
 //! I2C master only implementation
 //!
 class I2c
@@ -130,4 +132,5 @@ private:
     bool checkEvent(Event e);
 };
 
+#endif
 #endif

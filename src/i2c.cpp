@@ -1,7 +1,7 @@
 #include "i2c.h"
 #include "core/coreexception.h"
 
-#if !defined(I2C_REV03)
+#if !defined(I2C_REV03) && !defined(STM32G4)
 
 #define I2C_TIMEOUT 5000
 

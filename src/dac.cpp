@@ -1,5 +1,7 @@
 #include "dac.h"
 
+#if defined(STM32F4)
+
 Dac::Dac(Channels channels, Resolution resolution) :
     mChannels(channels),
     mEnabled(true)
@@ -115,3 +117,4 @@ void Dac::configDma(Dma *dma)
     DAC->CR |= cr;
 }
 //---------------------------------------------------------------------------
+#endif

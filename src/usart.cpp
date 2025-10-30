@@ -131,20 +131,22 @@ void Usart::commonConstructor(int number)
         break;
 #endif
 #if defined(STM32F4) || defined(STM32L4) || defined(STM32G4) || defined(STM32F7)
+#if defined(UART4)
       case 4:
         mDev = UART4;
         mDmaChannelRx = UART4_RX_DMA;
         mDmaChannelTx = UART4_TX_DMA;
         mIrq = UART4_IRQn;
         break;
-
+#endif
+#if defined(UART5)
       case 5:
         mDev = UART5;
         mDmaChannelRx = UART5_RX_DMA;
         mDmaChannelTx = UART5_TX_DMA;
         mIrq = UART5_IRQn;
         break;
-
+#endif
 #endif
 #if defined(STM32F4)
       case 6:

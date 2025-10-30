@@ -1310,16 +1310,22 @@ void Rcc::setPeriphEnabled(void *periphBase, bool enabled)
     }
     else switch (base)
     {
-#if defined(STM32G4)
-    case FDCAN1_BASE:
+    #if defined(STM32G4)
+        case FDCAN1_BASE:
+    #if defined(FDCAN2_BASE)
+        case FDCAN2_BASE:
+    #endif
+    #if defined(FDCAN3_BASE)
+        case FDCAN3_BASE:
+    #endif
         RCC->APB1ENR1 |= RCC_APB1ENR1_FDCANEN;
         break;
-#elif defined(STM32F3)
+    #elif defined(STM32F3)
     #if defined(DAC2)
     case DAC2_BASE:
         RCC->APB1ENR |= RCC_APB1ENR_DAC2EN;
     #endif
-#endif
+    #endif
         
     //! @todo Fill other cases
 

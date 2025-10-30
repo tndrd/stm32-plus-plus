@@ -43,10 +43,32 @@ add_library(stm32pp-modbus EXCLUDE_FROM_ALL ${STM32PP_MODBUS_SOURCES})
 target_link_libraries(stm32pp-modbus PUBLIC stm32pp-core lwipcore)
 
 add_library(stm32pp-objnet EXCLUDE_FROM_ALL ${STM32PP_OBJNET_SOURCES})
-target_link_libraries(stm32pp-objnet PUBLIC stm32pp-core stm32pp-ethernet)
+target_link_libraries(stm32pp-objnet PUBLIC stm32pp-core)
 
-# add_library(stm32pp-radio EXCLUDE_FROM_ALL ${STM32PP_RADIO_SOURCES})
-# target_link_libraries(stm32pp-radio PUBLIC stm32pp-core)
+add_library(stm32pp-radio EXCLUDE_FROM_ALL ${STM32PP_RADIO_SOURCES})
+target_link_libraries(stm32pp-radio PUBLIC stm32pp-core)
 
 add_library(stm32pp-usb EXCLUDE_FROM_ALL ${STM32PP_USB_SOURCES})
 target_link_libraries(stm32pp-usb PUBLIC stm32pp-core)
+
+add_library(stm32pp-serial EXCLUDE_FROM_ALL ${STM32PP_SERIAL_SOURCES})
+target_link_libraries(stm32pp-serial PUBLIC stm32pp-usb)
+
+# ONB Interfaces
+add_library(stm32pp-objnet-can-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_CAN_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-can-if PUBLIC stm32pp-objnet)
+
+add_library(stm32pp-objnet-uart-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_UART_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-uart-if PUBLIC stm32pp-objnet)
+
+add_library(stm32pp-objnet-usbhid-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_USBHID_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-usbhid-if PUBLIC stm32pp-objnet stm32pp-usb)
+
+add_library(stm32pp-objnet-udp-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_UDP_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-udp-if PUBLIC stm32pp-objnet stm32pp-ethernet)
+
+add_library(stm32pp-objnet-radio-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_RADIO_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-radio-if PUBLIC stm32pp-objnet stm32pp-radio)
+
+add_library(stm32pp-objnet-ble-if EXCLUDE_FROM_ALL ${STM32PP_OBJNET_BLE_IF_SOURCES})
+target_link_libraries(stm32pp-objnet-ble-if PUBLIC stm32pp-objnet)

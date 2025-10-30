@@ -785,4 +785,7 @@ enum Config
     DECL_ADC_PIN(5, 16, PE12),
     
     //! @todo COMP, OPAMP & VREFBUF
+
+    OTG_FS_DM = PINCONFIG(PA11, modeIn | speed100MHz | pullNone, afNone, 0),
+    OTG_FS_DP = PINCONFIG(PA12, modeIn | speed100MHz | pullNone, afNone, 0),
 };

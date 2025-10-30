@@ -12,6 +12,11 @@ UsbDevice::UsbDevice(UsbCore core) :
     mConfigIdx(0),
     mCurrentConfig(0L)
 {  
+#if defined(STM32G4)
+    if (mUsbCore == OtgHs)
+      THROW(Exception::InvalidPeriph);
+#endif
+    
     memset(&mDev, 0, sizeof(USB_OTG_CORE_HANDLE));
     mTestMode.d32 = 0;
   
@@ -730,6 +735,10 @@ void UsbDevice::disconnectEndpoint(UsbEndpoint *ep)
 
 void UsbDevice::bspInit()
 {
+#if defined(STM32G4)
+    Gpio::config(2, Gpio::OTG_FS_DM, Gpio::OTG_FS_DP);
+    RCC->AHB2ENR |= RCC_APB1ENR1_USBEN;
+#else
     if (mUsbCore == OtgFs)
     {
         Gpio::config(2, Gpio::OTG_FS_DM, Gpio::OTG_FS_DP);//,  Gpio::OTG_FS_SOF);
@@ -749,12 +758,17 @@ void UsbDevice::bspInit()
         RCC->AHB1ENR |= RCC_AHB1ENR_OTGHSEN | RCC_AHB1ENR_OTGHSULPIEN;
     }
     //RCC_APB1PeriphResetCmd(RCC_APB1Periph_PWR, ENABLE); // x3 otsuda ili net
+#endif
 }
 
 void UsbDevice::bspEnableInterrupt()
 {
+#if defined(STM32G4)
+    // USB_LP interrupt triggers on each USB event
+    IRQn_Type IRQn = USB_LP_IRQn;
+#else
     IRQn_Type IRQn = (mUsbCore == OtgFs)? OTG_FS_IRQn: OTG_HS_IRQn;
-  
+#endif
 //    NVIC_InitTypeDef NVIC_InitStructure; 
 //    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 //    NVIC_InitStructure.NVIC_IRQChannel = irq;
@@ -797,6 +811,16 @@ void UsbDevice::stop()
  extern "C" {
 #endif 
 
+#if defined(STM32G4)
+void USB_LP_IRQHandler(void)
+{
+  UsbDevice* dev = UsbDevice::fsCore();
+  if (!dev) return;
+
+  dev->driver()->isrHandler();
+}
+
+#else
 void OTG_FS_IRQHandler(void)
 {
     UsbDevice *dev = UsbDevice::fsCore();
@@ -814,6 +838,7 @@ void OTG_HS_IRQHandler(void)
     
     dev->driver()->isrHandler();
 }
+#endif
    
 #ifdef __cplusplus
 }

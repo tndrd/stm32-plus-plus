@@ -40,7 +40,7 @@ void ObjnetMaster::reset()
     mSearchMac = 1;
     while (!mDevices.empty())
         removeDevice(mDevices.begin()->first);
-    mRouteTable[0x00] = 0; // сразу записываем, как достучаться до верхнего уровня
+    mRouteTable[0x00] = 0; // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 }
 //---------------------------------------------------------------------------
 
@@ -48,11 +48,11 @@ void ObjnetMaster::task()
 {
     ObjnetCommonNode::task();
 
-    if (mRouteTable.size() >= 127) // если вся таблица маршрутизации заполнена, значит что-то пошло не так, и...
+    if (mRouteTable.size() >= 127) // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ, пїЅ...
     {
-        mRouteTable.clear();                    // чистим таблицу маршрутизации
-        mRouteTable[0x00] = 0;                  // сразу записываем, как достучаться до верхнего уровня
-        sendGlobalServiceMessage((StdAID)(aidConnReset | aidPropagationDown)); // выполняем перенумерацию
+        mRouteTable.clear();                    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        mRouteTable[0x00] = 0;                  // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+        sendGlobalServiceMessage((StdAID)(aidConnReset | aidPropagationDown)); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     }
 }
 
@@ -170,14 +170,14 @@ ObjnetDevice *ObjnetMaster::createDevice(unsigned char mac, ByteArray &location)
     char &netaddr = location.data()[1];
     bool localnet = (location.size() == 2);
  
-    if (localnet && mNetAddrByMacCache[mac])    // если девайс уже был в текущей подсети
+    if (localnet && mNetAddrByMacCache[mac])    // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     {
-        netaddr = mNetAddrByMacCache[mac];      // пытаемся вспомнить адрес по маку
+        netaddr = mNetAddrByMacCache[mac];      // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
         mRouteTable[netaddr] = mac;
     }
     else
     {
-        netaddr = createNetAddress(mac);        // создаём новый адрес
+        netaddr = createNetAddress(mac);        // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     }
 
     if (localnet)
@@ -188,8 +188,8 @@ ObjnetDevice *ObjnetMaster::createDevice(unsigned char mac, ByteArray &location)
     }
     if (!dev)
     {
-        dev = new ObjnetDevice(netaddr);          // создаём объект с новым адресом
-    //    dev->mAutoDelete = true;                    // раз автоматически создали - автоматически и удалим)
+        dev = new ObjnetDevice(netaddr);          // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    //    dev->mAutoDelete = true;                    // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ)
     }
     dev->mMaster = this;
     dev->mAutoDelete = false;     // ***** !!!!! TRY THIS !!!!!! *********
@@ -204,11 +204,11 @@ ObjnetDevice *ObjnetMaster::createDevice(unsigned char mac, ByteArray &location)
 //        dev->mBusType = BusSwonb;
 //    }
 
-    mDevices[netaddr] = dev;                    // запоминаем для поиска по адресу
-    if (localnet)                               // если девайс в текущей подсети...
+    mDevices[netaddr] = dev;                    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    if (localnet)                               // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ...
     {
-        mLocalnetDevices[mac] = dev;            // ...запоминаем для поиска по маку
-        mNetAddrByMacCache[mac] = netaddr;      // и кэшируем адрес для возврата по маку (чтобы лишний раз не создавать)
+        mLocalnetDevices[mac] = dev;            // ...пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
+        mNetAddrByMacCache[mac] = netaddr;      // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
     }
     else
     {
@@ -228,13 +228,13 @@ ObjnetDevice *ObjnetMaster::createDevice(unsigned char mac, ByteArray &location)
     #endif    
     
     #ifdef QT_CORE_LIB
-    emit devAdded(netaddr, location);                 // устройство добавлено
+    emit devAdded(netaddr, location);                 // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     #else
     if (onDevAdded)
         onDevAdded(netaddr, location);
     #endif
     
-    if (mAdjacentNode && mAdjacentNode->isConnected()) // если мастер связан с узлом, который уже подключен
+    if (mAdjacentNode && mAdjacentNode->isConnected()) // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     {
         bool send = true;
         for (int i=2; i<location.size(); i++)
@@ -244,7 +244,7 @@ ObjnetDevice *ObjnetMaster::createDevice(unsigned char mac, ByteArray &location)
                 send = false;
         }
         if (send)
-            mAdjacentNode->sendServiceMessage(svcHello, location); // отправляем дальше
+            mAdjacentNode->sendServiceMessage(svcHello, location); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     } 
     
     return dev;
@@ -384,7 +384,9 @@ bool ObjnetMaster::parseServiceMessage(const CommonMessage &msg)
         else if (!dev->isInfoValid())
         {
             dev->requestMetaInfo();
+            #if !defined(NDEBUG)
             qDebug() << "[ObjnetMaster] info not valid, request it again";
+            #endif
         }
         else if (!dev->isReady())
         {
@@ -393,7 +395,9 @@ bool ObjnetMaster::parseServiceMessage(const CommonMessage &msg)
                 if (!dev->objectInfo(i))
                 {
                     dev->requestObjectInfo(i);
+                    #if !defined(NDEBUG)
                     qDebug() << "[ObjnetMaster] object #" << i << "was not obtained, request it again";
+                    #endif
                     break;
                 }
             }
@@ -644,11 +648,11 @@ void ObjnetMaster::parseMessage(const CommonMessage &msg)
 
 unsigned char ObjnetMaster::createNetAddress(unsigned char mac)
 {
-    // сразу избегаем бесконечного цикла
+    // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     if (mRouteTable.size() >= 127)
         return 0x7F;
 
-    // ищем в таблице маршрутизации первый свободный адрес
+    // пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     while (mRouteTable.count(mAssignNetAddress))
     {
         mAssignNetAddress++;

@@ -9,6 +9,12 @@
 
 #include <array>
 
+#ifdef OBJNET_STATIC_STRINGS
+typedef const char* _String2;
+#else
+typedef _String _String2;
+#endif
+
 namespace Objnet
 {
 
@@ -37,12 +43,12 @@ private:
 
     // objnet related parameters:
     uint32_t mClass;
-    _String mName;
-    _String mFullName;
+    _String2 mName;
+    _String2 mFullName;
     uint32_t mSerial;
     unsigned short mVersion;
-    _String mBuildDate;
-    _String mCpuInfo;
+    _String2 mBuildDate;
+    _String2 mCpuInfo;
     uint32_t mBurnCount;
     unsigned char mBusType; // BusType
     
@@ -96,11 +102,17 @@ public:
     void setClassId() {mClass = APP_CLASS;}
 #endif
     void setClassId(uint32_t classId) {mClass = classId;}
-    void setName(_String name) {mName = _toString(_fromString(name).substr(0, 8));}
-    void setFullName(_String name) {mFullName = name;}
 
-    _String name() const {return mName;}
-    _String fullName() const {return mFullName;}
+    #ifdef OBJNET_STATIC_STRINGS
+    void setName(_String2 name) { mName = name; }
+    #else
+    void setName(_String2 name) {mName = _toString(_fromString(name).substr(0, 8));}
+    #endif
+
+    void setFullName(_String2 name) {mFullName = name;}
+
+    _String2 name() const {return mName;}
+    _String2 fullName() const {return mFullName;}
     uint32_t classId() const {return mClass;}
     uint32_t serial() const {return mSerial;}
     unsigned short version() const {return mVersion;}
@@ -118,27 +130,27 @@ public:
     #define BindMethodEx(name, object, method) bindObject(ObjectInfo(name, CLOSURE(object, method)))
     #define BindMethodHiddenEx(name, object, method) bindObject(ObjectInfo(name, CLOSURE(object, &method), ObjectInfo::Hidden))
     
-    template <typename T> ObjectInfo &bindVariable(string name, T &var)
+    template <typename T> ObjectInfo &bindVariable(_String2 name, T &var)
     {
         return bindObject(ObjectInfo(name, var));
     }
     
-    template <typename T> ObjectInfo &bindInput(string name, T &var)
+    template <typename T> ObjectInfo &bindInput(_String2 name, T &var)
     {
         return bindObject(ObjectInfo(name, var, ObjectInfo::Control));
     }
     
-    template <typename T> ObjectInfo &bindOutput(string name, T &var)
+    template <typename T> ObjectInfo &bindOutput(_String2 name, T &var)
     {
         return bindObject(ObjectInfo(name, var, ObjectInfo::Measurement));
     }
     
-    template <typename T> ObjectInfo &bindIO(string name, T &var)
+    template <typename T> ObjectInfo &bindIO(_String2 name, T &var)
     {
         return bindObject(ObjectInfo(name, var, ObjectInfo::Exchange));
     }
     
-    template <typename T> ObjectInfo &bindSetting(string name, T &var)
+    template <typename T> ObjectInfo &bindSetting(_String2 name, T &var)
     {
         return bindObject(ObjectInfo(name, var, ObjectInfo::Storage));
     }

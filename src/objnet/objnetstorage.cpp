@@ -6,9 +6,9 @@ ObjnetStorage* ObjnetStorage::mSelf = 0L;
 #if defined(STM32F37X)
 Flash::Sector ObjnetStorage::mSector1 = (Flash::Sector)126;
 Flash::Sector ObjnetStorage::mSector2 = (Flash::Sector)127;
-#else
-Flash::Sector ObjnetStorage::mSector1 = Flash::Sector2;
-Flash::Sector ObjnetStorage::mSector2 = Flash::Sector3;
+#elif defined(STM32G431xx)
+Flash::Sector ObjnetStorage::mSector1 = (Flash::Sector)(30);
+Flash::Sector ObjnetStorage::mSector2 = (Flash::Sector)(31);
 #endif
 
 void ObjnetStorage::setFlashSectors(Flash::Sector sector1, Flash::Sector sector2)
@@ -225,7 +225,7 @@ void ObjnetStorage::load(ObjectInfo &info)
 
 void ObjnetStorage::format(Flash::Sector sector)
 {
-    unsigned long address = Flash::getBeginOfSector(sector);
+    unsigned long address = reinterpret_cast<unsigned long>(Flash::getBeginOfSector(sector));
     
     SectorHeader hdr;
     hdr.magicNumber = Active;

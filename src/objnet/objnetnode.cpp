@@ -30,9 +30,15 @@ ObjnetNode::ObjnetNode(ObjnetInterface *iface) :
 
     #ifndef QT_CORE_LIB
     mVersion = stmApp()->version();
+
+    #ifdef OBJNET_STATIC_STRINGS
+    mBuildDate = stmApp()->buildDate().c_str();
+    mCpuInfo = stmApp()->cpuInfo().c_str();
+    #else
     mBuildDate = stmApp()->buildDate();
-    mSerial = CpuId::serial();
     mCpuInfo = stmApp()->cpuInfo();
+    #endif
+    mSerial = CpuId::serial();
     mBurnCount = stmApp()->burnCount();
     #endif
 
@@ -68,7 +74,7 @@ ObjnetNode::ObjnetNode(ObjnetInterface *iface) :
 void ObjnetNode::bindSvcObject(SvcOID oid, const ObjectInfo &obj)
 {
     mSvcObjects[oid] = obj;
-    #ifndef QT_CORE_LIB
+    #if !defined(QT_CORE_LIB) && !defined(OBJNET_NO_STORAGE)
     if (obj.isStorable())
         objnetStorage()->load(mSvcObjects[oid]);
     #endif
@@ -340,12 +346,22 @@ bool ObjnetNode::parseServiceMessage(const CommonMessage &msg)
 
                 mNetAddress = msg.data()[0];
                 mNetState = netnAccepted;
+                #ifdef OBJNET_STATIC_STRINGS
+                int len = strlen(mName);
+                #else
                 int len = mName.length();
+                #endif
                 if (len > 8)
                     len = 8;
                 // send different info
                 success &= sendServiceMessage(remoteAddr, svcClass, ByteArray(reinterpret_cast<const char*>(&mClass), sizeof(mClass)));
+                
+                #ifdef OBJNET_STATIC_STRINGS
+                success &= sendServiceMessage(remoteAddr, svcName, ByteArray(mName, len));
+                #else
                 success &= sendServiceMessage(remoteAddr, svcName, ByteArray(_fromString(mName).c_str(), len));
+                #endif
+                
                 success &= sendServiceMessage(remoteAddr, svcEcho); // echo at the end of info
             }
         }
@@ -531,7 +547,7 @@ bool ObjnetNode::parseServiceMessage(const CommonMessage &msg)
             if (msg.data().size()) // write
             {
                 obj.write(msg.data());
-                #ifndef QT_CORE_LIB
+                #if !defined(QT_CORE_LIB) && !defined(OBJNET_NO_STORAGE)
                 if (obj.isStorable())
                     objnetStorage()->save(obj);
                 #endif
@@ -593,7 +609,7 @@ void ObjnetNode::parseMessage(const CommonMessage &msg)
             obj.write(msg.data());
             if (obj.isDual() || mBusType == BusSwonb || mBusType == BusRadio)
                 sendMessage(remoteAddr, oid, obj.read());
-            #ifndef QT_CORE_LIB
+            #if !defined(QT_CORE_LIB) && !defined(OBJNET_NO_STORAGE)
             if (obj.isStorable() && !obj.isDual())
                 objnetStorage()->save(obj);
             #endif

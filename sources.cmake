@@ -17,11 +17,11 @@ set(STM32PP_COMMON_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/fmc.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/sdadc.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/pwminput.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/flashdrive.cpp
+  # ${CMAKE_CURRENT_SOURCE_DIR}/src/flashdrive.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/fdcan.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/dma37x.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/button.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/fakeeeprom.cpp
+  # ${CMAKE_CURRENT_SOURCE_DIR}/src/fakeeeprom.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/led7.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/adc303.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/led.cpp
@@ -44,6 +44,7 @@ set(STM32PP_COMMON_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/gpio.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/can.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/flash4xx.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/flash_g4.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/cansocket.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/rcc.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/picontroller.cpp 
@@ -166,7 +167,6 @@ set(STM32PP_OBJNET_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objnetInterface.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objnetmaster.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/genericonbinterface.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objnetNode.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objnetdevice.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objectinfo.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/objnet/objnetstorage.cpp
@@ -205,7 +205,7 @@ set(STM32PP_RADIO_SOURCES
 ) 
 
 set(STM32PP_SERIAL_SOURCES 
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/serial/seriallink.cpp
+  #${CMAKE_CURRENT_SOURCE_DIR}/src/serial/seriallink.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/serial/serialframe.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/serial/usartframed.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/serial/usbvcp.cpp
@@ -231,6 +231,8 @@ set(STM32PP_USB_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbMsc/mscbot.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbHid/usbhid.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbVideo/usbVideo.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/otgDriver/usb_core.cpp 
-) 
+)
 
+set(STM32PP_OTG_DRIVER_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/otgDriver/usb_core.cpp 
+)

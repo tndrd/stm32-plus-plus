@@ -8,70 +8,79 @@
 class Flash
 {
 public:
-    typedef enum
-    {
-        Sector0  = 0x0000,
-        Sector1  = 0x0008,
-        Sector2  = 0x0010,
-        Sector3  = 0x0018,
-        Sector4  = 0x0020,
-        Sector5  = 0x0028,
-        Sector6  = 0x0030,
-        Sector7  = 0x0038,
-        Sector8  = 0x0040,
-        Sector9  = 0x0048,
-        Sector10 = 0x0050,
-        Sector11 = 0x0058,
-        Sector12 = 0x0080,
-        Sector13 = 0x0088,
-        Sector14 = 0x0090,
-        Sector15 = 0x0098,
-        Sector16 = 0x00A0,
-        Sector17 = 0x00A8,
-        Sector18 = 0x00B0,
-        Sector19 = 0x00B8,
-        Sector20 = 0x00C0,
-        Sector21 = 0x00C8,
-        Sector22 = 0x00D0,
-        Sector23 = 0x00D8,
-        InvalidSector = 0xFFFF
-    } Sector;
+    #if defined(STM32G431xx)
+    static const uint32_t Size     = 0x10000;  // 64K
+    static const uint32_t PageSize = 0x00800;  // 2K
+    #else
+      #error "Not implemented"
+    #endif
 
-    typedef enum
+    static const uint32_t PageCount = Size / PageSize;
+
+    enum Sector: uint8_t
+    {
+        Page0 = 0,
+        Page1 = 1,
+        // ...
+        Page62 = 62,
+        Page63 = 63,
+
+        InvalidPage = 0xFF,
+    };
+
+    enum Status: uint32_t
     {
         sCompleted          = 0,
-        sBusy               = 0x00010000,
-        sErrorReadProtect   = 0x00000100,
-        sErrorProgSeq       = 0x00000080,
-        sErrorParallelism   = 0x00000040,
-        sErrorAlignment     = 0x00000020,
-        sErrorWriteProtect  = 0x00000010,
-        StatusMask          = 0x000101F0
-    } Status;
+        sBusy               = FLASH_SR_BSY_Msk,
+        sErrorOptInvalid    = FLASH_SR_OPTVERR_Msk,
+        sErrorReadProtect   = FLASH_SR_RDERR_Msk,
+        sErrorFastProg      = FLASH_SR_FASTERR_Msk,
+        sErrorFastProgMiss  = FLASH_SR_MISERR_Msk, 
+        sErrorProgSeq       = FLASH_SR_PGSERR_Msk,
+        sErrorSize          = FLASH_SR_SIZERR_Msk,
+        sErrorAlignment     = FLASH_SR_PGAERR_Msk,
+        sErrorWriteProtect  = FLASH_SR_WRPERR_Msk,
+        sErrorProgramming   = FLASH_SR_PROGERR_Msk,
+        sErrorOperation     = FLASH_SR_OPERR_Msk,
+        sEndOfOperation     = FLASH_SR_EOP_Msk,
+        StatusMask          = 0x0001c3fb
+    } ;
 
 private:
-    static const int mAddresses[25];
-
+    static void clearProgrammingFlags();
+    
     static Status status();
     static Status wait();
 
+    static void programDWord_impl(void* address, uint64_t value);
 public:
-    static Sector getSectorByIdx(unsigned char index);
-    static unsigned char getIdxOfSector(Sector sector);
-    static Sector getSectorByAddress(unsigned long addr);
-    static unsigned long getBeginOfSector(Sector sector);
-    static unsigned long getSizeOfSector(Sector sector);
-    static bool isSectorValid(Sector sector);
-    static Sector lastSector();
+    static Sector getSectorByAddress(const void* addr);
+    static void* getBeginOfSector(Sector sector);
+    static uint32_t getSizeOfSector(Sector sector);
 
     static void unlock();
     static void lock();
 
     static Status eraseSector(Sector sector);
     static uint32_t readWord(uint32_t address) {return *reinterpret_cast<uint32_t*>(address);}
-    static Status programWord(unsigned long address, unsigned long value);
+
+    static Status programData(void* address, const void *data, uint32_t size);
+    
+    // Adapters for backward compatibility
     static Status programData(unsigned long address, const void *data, unsigned long size);
-    static Status programDataInverted(unsigned long address, const void *data, unsigned long size);
+    static Status programWord(unsigned long address, unsigned long value);
+
+
+    template<typename T>
+    static Status program(void* address, const T& value)
+    {
+      return programData(address, &value, sizeof(value));
+    }
+
+    static Status programDWord(uint64_t* address, uint64_t value);
+    static Status programWord(uint32_t* address, uint32_t value);
+    static Status programHWord(uint16_t* address, uint16_t value);
+    static Status programByte(uint8_t* address, uint8_t value);
 };
 
 #endif

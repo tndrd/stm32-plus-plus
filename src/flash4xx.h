@@ -1,6 +1,8 @@
 #ifndef _FLASH4XX_H
 #define _FLASH4XX_H
 
+#if defined(STM32F4)
+
 #include "stm32.h"
 #include "cpuid.h"
 #include "core/coreexception.h"
@@ -74,4 +76,5 @@ public:
     static Status programDataInverted(unsigned long address, const void *data, unsigned long size);
 };
 
+#endif
 #endif

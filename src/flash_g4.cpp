@@ -1,157 +1,180 @@
 #include "flash.h"
+#include <assert.h>
 
-#if defined(STM32F4)
+#if defined(STM32G4)
 
-const int Flash::mAddresses[25] =
+Flash::Sector Flash::getSectorByAddress(const void* addr_)
 {
-    0x08000000, 0x08004000, 0x08008000, 0x0800C000,
-    0x08010000, 0x08020000, 0x08040000, 0x08060000,
-    0x08080000, 0x080A0000, 0x080C0000, 0x080E0000,
-    0x08100000, 0x08104000, 0x08108000, 0x0810C000,
-    0x08110000, 0x08120000, 0x08140000, 0x08160000,
-    0x08180000, 0x081A0000, 0x081C0000, 0x081E0000,
-    0x08200000
-};
+  uint64_t addr = reinterpret_cast<uint64_t>(addr_);
 
-Flash::Sector Flash::getSectorByIdx(unsigned char index)
-{
-    if (index < 12)
-        return static_cast<Sector>(index << 3);
-    else if (index < 24)
-        return static_cast<Sector>(((index - 12) << 3) + 0x0080);
-    return InvalidSector;
+  if (addr < FLASH_BASE || addr >= FLASH_BASE + Size)
+    return InvalidPage;
+
+  return static_cast<Sector>((addr - FLASH_BASE) / PageSize);
 }
 
-unsigned char Flash::getIdxOfSector(Sector sector)
+void* Flash::getBeginOfSector(Sector sector)
 {
-    if (sector == InvalidSector)
-        return 0xFF;
-    unsigned short sec = static_cast<unsigned short>(sector);
-    if (sec & 0x0080)
-        return ((sec & 0x0078) >> 3) + 12;
-    else
-        return sec >> 3;
-}
-
-Flash::Sector Flash::getSectorByAddress(unsigned long addr)
-{
-    for (int i=0; i<25; i++)
-    {
-        if (addr < mAddresses[i])
-            return getSectorByIdx(i-1);
-    }
-    return InvalidSector;
-}
-
-unsigned long Flash::getBeginOfSector(Sector sector)
-{
-    unsigned char idx = getIdxOfSector(sector);
-    if (idx < 24)
-        return mAddresses[idx];
+  if (sector >= PageCount)
     THROW(Exception::OutOfRange);
-    return 0;
+
+  return reinterpret_cast<void*>(FLASH_BASE + sector * PageSize);
 }
 
-unsigned long Flash::getSizeOfSector(Sector sector)
+uint32_t Flash::getSizeOfSector(Sector sector)
 {
-    unsigned char idx = getIdxOfSector(sector);
-    if (idx < 24)
-        return mAddresses[idx+1] - mAddresses[idx];
-    THROW(Exception::OutOfRange);
-    return 0;
+  return PageSize;
 }
 
-bool Flash::isSectorValid(Sector sector)
-{
-    unsigned long sz = CpuId::flashSizeK();
-    unsigned long begin = getBeginOfSector(sector);
-    return (begin < 0x08000000 + sz*0x400);      
-}
-
-Flash::Sector Flash::lastSector()
-{
-    unsigned long sz = CpuId::flashSizeK();
-    return getSectorByAddress(0x08000000 + sz*0x400 - 1);
-}
 //---------------------------------------------------------------------------
 
 Flash::Status Flash::status()
 {
-    return static_cast<Status>(FLASH->SR & StatusMask);
+  return static_cast<Status>(FLASH->SR & StatusMask);
 }
 
 Flash::Status Flash::wait()
 {
-    while (FLASH->SR & sBusy);
-    return static_cast<Status>(FLASH->SR & StatusMask);
+  while (FLASH->SR & sBusy);
+  return status();
 }
 //---------------------------------------------------------------------------
 
 void Flash::unlock()
 {
-    if (FLASH->CR & FLASH_CR_LOCK)
-    {
-        FLASH->KEYR = 0x45670123;
-        FLASH->KEYR = 0xCDEF89AB;
-    }
+  if (FLASH->CR & FLASH_CR_LOCK)
+  {
+    FLASH->KEYR = 0x45670123;
+    FLASH->KEYR = 0xCDEF89AB;
+  }
 }
 
 void Flash::lock()
 {
-    FLASH->CR |= FLASH_CR_LOCK;
+  FLASH->CR |= FLASH_CR_LOCK;
 }
+
+void Flash::clearProgrammingFlags()
+{
+  // Each flag is cleared by writing "1" to it
+  FLASH->SR |= FLASH_SR_PROGERR | FLASH_SR_SIZERR | FLASH_SR_PGAERR  | 
+               FLASH_SR_WRPERR  | FLASH_SR_MISERR | FLASH_SR_FASTERR ;
+}
+
 //---------------------------------------------------------------------------
 
 Flash::Status Flash::eraseSector(Sector sector)
 {
-    Status status;
-    status = wait();
-    FLASH->CR = 0x00000200 | FLASH_CR_SER | (unsigned long)sector;
-    FLASH->CR |= FLASH_CR_STRT;
-    status = wait();
-    FLASH->CR &= ~FLASH_CR_SER;
-    return status;
+  wait();
+  clearProgrammingFlags();
+  
+  // Set page number and start erasing
+  FLASH->CR |= (sector << FLASH_CR_PNB_Pos) & FLASH_CR_PNB_Msk;
+  FLASH->CR |= FLASH_CR_PER | FLASH_CR_STRT;
+  
+  return wait();
+}
+
+//---------------------------------------------------------------------------
+
+void Flash::programDWord_impl(void* address, uint64_t value)
+{
+  *reinterpret_cast<volatile uint64_t*>(address) = value;
+}
+
+static uint32_t mod(const void* addr, uint32_t val)
+{
+    return uint32_t(addr) % val;
+}
+
+// bitshift operators' actual directions are inverted due to endianness
+Flash::Status Flash::programData(void* dst_, const void* src_, uint32_t size)
+{
+  auto dst = reinterpret_cast<uint8_t*>(dst_);
+  auto src = reinterpret_cast<const uint8_t*>(src_);
+  
+  // Enable programming
+  wait();
+  clearProgrammingFlags();
+  FLASH->CR |= FLASH_CR_PG;
+  
+  // If dst address is not 8-aligned
+  if (mod(dst, 8))
+  {
+    uint8_t offs = mod(dst, 8);
+    uint64_t val = *reinterpret_cast<const uint64_t*>(src);
+    
+    val <<= 8 * offs;
+    val |= (~uint64_t(0)) >> 8 * (8 - offs); 
+
+    programDWord_impl(dst - offs, val);
+    
+    dst  += 8 - offs;
+    src  += 8 - offs;
+    size -= 8 - offs;
+  }
+
+  assert(mod(dst, 8) == 0);
+
+  uint32_t oldsz = size;
+  for (int i = 0; i < oldsz / 8; ++i)
+  {
+    programDWord_impl(dst, *reinterpret_cast<const uint64_t*>(src));
+    dst  += 8;
+    src  += 8;
+    size -= 8;
+  }
+
+  assert(size < 8);
+
+  // If data less than a dword remains
+  if (size != 0)
+  {
+    uint64_t val = *reinterpret_cast<const uint64_t*>(src);
+    val |= (~uint64_t(0)) << size * 8;
+
+    programDWord_impl(dst, val);
+  }
+
+  // Disable programming
+  FLASH->SR |= FLASH_SR_EOP;
+  FLASH->CR &= ~FLASH_CR_PG;
+
+  return wait();
+}
+
+//---------------------------------------------------------------------------
+
+Flash::Status Flash::programDWord(uint64_t* address, uint64_t value)
+{
+  return program<uint64_t>(address, value);
+}
+
+Flash::Status Flash::programWord(uint32_t* address, uint32_t value)
+{
+  return program<uint32_t>(address, value);
+}
+
+Flash::Status Flash::programHWord(uint16_t* address, uint16_t value)
+{
+  return program<uint16_t>(address, value);
+}
+
+Flash::Status Flash::programByte(uint8_t* address, uint8_t value)
+{
+  return program<uint8_t>(address, value);
+}
+
+//---------------------------------------------------------------------------
+
+Flash::Status Flash::programData(unsigned long address, const void *data, unsigned long size)
+{
+  return programData(reinterpret_cast<void*>(address), data, size);
 }
 
 Flash::Status Flash::programWord(unsigned long address, unsigned long value)
 {
-    Status status;
-    status = wait();
-    FLASH->CR = 0x00000200 | FLASH_CR_PG;
-    *reinterpret_cast<volatile unsigned long*>(address) = value;
-    status = wait();
-    FLASH->CR &= ~FLASH_CR_PG;
-    return status;
-}
-
-Flash::Status Flash::programData(unsigned long address, const void *data, unsigned long size)
-{
-    Status status;
-    status = wait();
-    FLASH->CR = 0x00000200 | FLASH_CR_PG;
-    int sz = (size + 3) / 4;
-    for (unsigned long i=0; i<sz; i++)
-    {
-        reinterpret_cast<volatile unsigned long*>(address)[i] = reinterpret_cast<const unsigned long*>(data)[i];
-        status = wait();
-    }
-    FLASH->CR &= ~FLASH_CR_PG;
-    return status;
-}
-
-Flash::Status Flash::programDataInverted(unsigned long address, const void *data, unsigned long size)
-{
-    Status status;
-    status = wait();
-    FLASH->CR = 0x00000200 | FLASH_CR_PG;
-    int sz = (size + 3) / 4;
-    for (unsigned long i=0; i<sz; i++)
-    {
-        reinterpret_cast<volatile unsigned long*>(address)[i] = ~reinterpret_cast<const unsigned long*>(data)[i];
-        status = wait();
-    }
-    FLASH->CR &= ~FLASH_CR_PG;
-    return status;
+  return programWord(reinterpret_cast<uint32_t*>(address), value);
 }
 
 #endif

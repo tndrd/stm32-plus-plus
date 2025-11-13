@@ -58,10 +58,17 @@ typedef enum
 #define USBD_VID                                0x1234                
 #define USBD_PID                                0x4321
 #define USBD_LANGID_STRING                      0x409
+
+#ifndef USBD_NO_WSTRING
 #define USBD_MANUFACTURER_STRING                L"<Manufacturer>"
 #define USBD_PRODUCT_STRING                     L"<Product>"
 #define USBD_SERIAL_NUMBER                      L"<Serial>"
-  
+#else
+#define USBD_MANUFACTURER_STRING                "<Manufacturer>"
+#define USBD_PRODUCT_STRING                     "<Product>"
+#define USBD_SERIAL_NUMBER                      "<Serial>"
+#endif
+
 }
 
 #endif

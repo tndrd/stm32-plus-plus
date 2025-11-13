@@ -61,6 +61,7 @@ public:
 class StringDescriptor : public Descriptor
 {
 public:
+    #ifndef USBD_NO_WSTRING
     StringDescriptor(wstring str) 
     {
         int slen = str.length();
@@ -68,6 +69,7 @@ public:
         append(USB_DESC_TYPE_STRING);
         append(str.data(), slen*2);
     }
+    #endif
     
     StringDescriptor(string str)
     {

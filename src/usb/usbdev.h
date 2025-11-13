@@ -86,7 +86,11 @@ public:
     USB_OTG_CORE_HANDLE *handle() {return &mDev;}
     UsbDeviceDriver *driver() {return mDrv;}
     unsigned char addStringDescriptor(const string &s);
+    
+    #ifndef USBD_NO_WSTRING
     unsigned char addStringDescriptor(const wstring &s);
+    #endif
+
     int endpointCount() const {return mEndpoints.size();}
     void connectEndpoint(UsbEndpoint *ep);
     void disconnectEndpoint(UsbEndpoint *ep);
@@ -150,6 +154,19 @@ public:
     */
     void setManufacturer(const string &manufacturer);
     
+    /*! Set the product string in descriptor.
+        Should be called before start().
+        \param product String containing the name of the product.
+    */
+    void setProduct(const string &product);
+    
+    /*! Set the serial number string in descriptor.
+        Should be called before start().
+        \param serial String containing the serial number of the product.
+    */
+    void setSerialNumber(const string &serial);
+    
+    #ifndef USBD_NO_WSTRING
     /*! Set the manufacturer string in descriptor.
         This is overloaded function intended for dealing with multi-byte string.
         Should be called before start().
@@ -158,31 +175,20 @@ public:
     void setManufacturer(const wstring &manufacturer);
     
     /*! Set the product string in descriptor.
-        Should be called before start().
-        \param product String containing the name of the product.
-    */
-    void setProduct(const string &product);
-    
-    /*! Set the product string in descriptor.
         This is overloaded function intended for dealing with multi-byte string.
         Should be called before start().
         \param product String containing the name of the product.
     */
     void setProduct(const wstring &product);
     
-    /*! Set the serial number string in descriptor.
-        Should be called before start().
-        \param serial String containing the serial number of the product.
-    */
-    void setSerialNumber(const string &serial);
-    
-    /*! Set the serial number string in descriptor.
+        /*! Set the serial number string in descriptor.
         This is overloaded function intended for dealing with multi-byte string.
         Should be called before start().
         \param serial String containing the serial number of the product.
     */
     void setSerialNumber(const wstring &serial);
-    
+    #endif 
+
     void setUsbSpecification(unsigned short spec);
 };
 

@@ -129,17 +129,7 @@ void UsbDevice::setManufacturer(const string &manufacturer)
     mStrings[1] = StringDescriptor(manufacturer).toByteArray();
 }
 
-void UsbDevice::setManufacturer(const wstring &manufacturer)
-{
-    mStrings[1] = StringDescriptor(manufacturer).toByteArray();
-}
-
 void UsbDevice::setProduct(const string &product)
-{
-    mStrings[2] = StringDescriptor(product).toByteArray();
-}
-
-void UsbDevice::setProduct(const wstring &product)
 {
     mStrings[2] = StringDescriptor(product).toByteArray();
 }
@@ -149,10 +139,22 @@ void UsbDevice::setSerialNumber(const string &serial)
     mStrings[3] = StringDescriptor(serial).toByteArray();
 }
 
+#ifndef USBD_NO_WSTRING
+void UsbDevice::setManufacturer(const wstring &manufacturer)
+{
+    mStrings[1] = StringDescriptor(manufacturer).toByteArray();
+}
+
+void UsbDevice::setProduct(const wstring &product)
+{
+    mStrings[2] = StringDescriptor(product).toByteArray();
+}
+
 void UsbDevice::setSerialNumber(const wstring &serial)
 {
     mStrings[3] = StringDescriptor(serial).toByteArray();
 }
+#endif
 
 void UsbDevice::setUsbSpecification(unsigned short spec)
 {
@@ -713,11 +715,13 @@ unsigned char UsbDevice::addStringDescriptor(const string &s)
     return mStrings.size() - 1;
 }
 
+#ifndef USBD_NO_WSTRING
 unsigned char UsbDevice::addStringDescriptor(const wstring &s)
 {
     mStrings.push_back(StringDescriptor(s).toByteArray());
     return mStrings.size() - 1;
 }
+#endif
 //---------------------------------------------------------------------------
 
 void UsbDevice::connectEndpoint(UsbEndpoint *ep)

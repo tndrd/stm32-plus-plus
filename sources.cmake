@@ -231,8 +231,5 @@ set(STM32PP_USB_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbMsc/mscbot.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbHid/usbhid.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/usbVideo/usbVideo.cpp
-)
-
-set(STM32PP_OTG_DRIVER_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/otgDriver/usb_core.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/usb/otgDriver/usb_core.cpp
 )

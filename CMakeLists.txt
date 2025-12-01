@@ -48,11 +48,8 @@ target_link_libraries(stm32pp-objnet PUBLIC stm32pp-core)
 add_library(stm32pp-radio EXCLUDE_FROM_ALL ${STM32PP_RADIO_SOURCES})
 target_link_libraries(stm32pp-radio PUBLIC stm32pp-core)
 
-add_library(stm32pp-usb-otg EXCLUDE_FROM_ALL ${STM32PP_OTG_DRIVER_SOURCES})
-target_link_libraries(stm32pp-usb-otg PUBLIC stm32pp-core)
-
 add_library(stm32pp-usb EXCLUDE_FROM_ALL ${STM32PP_USB_SOURCES})
-target_link_libraries(stm32pp-usb PUBLIC stm32pp-usb-otg)
+target_link_libraries(stm32pp-usb PUBLIC stm32pp-core)
 
 add_library(stm32pp-serial EXCLUDE_FROM_ALL ${STM32PP_SERIAL_SOURCES})
 target_link_libraries(stm32pp-serial PUBLIC stm32pp-usb)

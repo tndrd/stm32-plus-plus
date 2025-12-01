@@ -6,9 +6,14 @@ ObjnetStorage* ObjnetStorage::mSelf = 0L;
 #if defined(STM32F37X)
 Flash::Sector ObjnetStorage::mSector1 = (Flash::Sector)126;
 Flash::Sector ObjnetStorage::mSector2 = (Flash::Sector)127;
+#elif defined(STM32F407xx)
+Flash::Sector ObjnetStorage::mSector1 = Flash::Sector10;
+Flash::Sector ObjnetStorage::mSector2 = Flash::Sector11;
 #elif defined(STM32G431xx)
 Flash::Sector ObjnetStorage::mSector1 = (Flash::Sector)(30);
 Flash::Sector ObjnetStorage::mSector2 = (Flash::Sector)(31);
+#else
+#error specify sectors for target
 #endif
 
 void ObjnetStorage::setFlashSectors(Flash::Sector sector1, Flash::Sector sector2)

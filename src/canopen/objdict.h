@@ -111,9 +111,6 @@ ENTRY(StatusWord)<uint16_t, 0x6041>
 INHERITED(SetOpMode, OperationMode)<int8_t, 0x6060> {};
 INHERITED(GetOpMode, OperationMode)<int8_t, 0x6061> {};
 
-ENTRY(PositionActualValue)<int32_t, 0x6064> {};
-ENTRY(VelocityActualValue)<int32_t, 0x606C> {};
-
 // Profiled Torque Mode:
 ENTRY(TargetTorque)<int16_t, 0x6071> {};
 ENTRY(MaxTorque)<uint16_t, 0x6072> {};
@@ -124,13 +121,17 @@ ENTRY(MotorRatedTorque)<uint32_t, 0x6076> {};
 ENTRY(TorqueActualValue)<int16_t, 0x6077> {};
 ENTRY(CurrentActualValue)<int16_t, 0x6078> {};
 
-ENTRY(PosRangeLimitMin)<uint32_t, 0x607B, 1> {};
-ENTRY(PosRangeLimitMax)<uint32_t, 0x607B, 2> {};
+ENTRY(PositionActualValue)<int32_t, 0x6064> {};
+ENTRY(VelocityActualValue)<int32_t, 0x606C> {};
 
-ENTRY(PosSoftLimitMin)<uint32_t, 0x607D, 1> {};
-ENTRY(PosSoftLimitMax)<uint32_t, 0x607D, 2> {};
+ENTRY(PosRangeLimitMin)<int32_t, 0x607B, 1> {};
+ENTRY(PosRangeLimitMax)<int32_t, 0x607B, 2> {};
+
+ENTRY(PosSoftLimitMin)<int32_t, 0x607D, 1> {};
+ENTRY(PosSoftLimitMax)<int32_t, 0x607D, 2> {};
 
 ENTRY(TargetPos)<int32_t, 0x607A> {};
+ENTRY(TargetVelocity)<int32_t, 0x60FF> {};
 
 ENTRY(MaxProfileVelocity)<uint32_t, 0x607F> {};
 ENTRY(ProfileVelocity)<uint32_t, 0x6081> {};

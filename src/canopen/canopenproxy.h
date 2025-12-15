@@ -23,13 +23,17 @@ public:
     
     /// Compile-time Object Dictionary Entry description
     /// @attention See objdict.h to see usage
-    template<typename T, uint16_t id, uint8_t sid = 0>
+    template<typename T, uint16_t id_, uint8_t sid_ = 0>
     struct ODEntryMeta
     {
         using Type = T;
         static_assert(std::is_integral_v<T> && sizeof(T) <= 4, "Type mismatch");
         
-        static constexpr ODEntry value = {id, sid, sizeof(T)};
+        static constexpr ODEntry value = {id_, sid_, sizeof(T)};
+        
+        static constexpr auto Id = value.id;
+        static constexpr auto Sid = value.sid;
+        static constexpr auto Size = value.size;
     };
     
     struct PDOEntry

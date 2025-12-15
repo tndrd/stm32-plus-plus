@@ -176,4 +176,24 @@ struct GlobalMsgId
 
 }
 
+#ifdef QT_CORE_LIB
+Q_DECLARE_METATYPE(Objnet::SvcOID);
+
+namespace Helpers
+{
+
+struct OnInit
+{
+  template<typename F>
+  OnInit(F f) { f(); }
+};
+
+static OnInit regSvcOid ([]()
+{
+  qRegisterMetaType<Objnet::SvcOID>("SvcOID");
+});
+
+}
+#endif
+
 #endif

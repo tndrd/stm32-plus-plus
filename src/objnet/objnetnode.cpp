@@ -718,7 +718,7 @@ void ObjnetNode::sendForced(unsigned char oid)
 ObjectInfo *ObjnetNode::object(string name)
 {
     for (ObjectInfo &o: mObjects)
-        if (name == o.name())
+        if (name == o.name().toStdString())
             return &o;
     return nullptr;
 }
